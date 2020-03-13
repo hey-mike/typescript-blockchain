@@ -52,6 +52,7 @@ export class Blockchain {
     const genesisBlock = new Block("0", Date.now(), []);
     await genesisBlock.mine();
     this._chain.push(genesisBlock);
+    console.log(" this._chain", this._chain);
   }
 
   createTransaction(transaction: Transaction): void {
