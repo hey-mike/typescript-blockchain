@@ -53,12 +53,15 @@ export class Application implements Renderable<void> {
 
   private get statusLine(): TemplateResult {
     return html`
-      <p>${
-        this.node.chainIsEmpty          ? '⏳ Initializing the blockchain...' :
-        this.node.isMining              ? '⏳ Mining a new block...' :
-        this.node.noPendingTransactions ? '📩 Add one or more transactions.' :
-                                          '✅ Ready to mine a new block.'
-      }</p>
+      <p>
+        ${this.node.chainIsEmpty
+          ? '⏳ Initializing the blockchain...'
+          : this.node.isMining
+          ? '⏳ Mining a new block...'
+          : this.node.noPendingTransactions
+          ? '📩 Add one or more transactions.'
+          : '✅ Ready to mine a new block.'}
+      </p>
     `;
   }
 
@@ -95,14 +98,17 @@ export class Application implements Renderable<void> {
 
   private readonly handleServerMessages = (message: Message) => {
     switch (message.type) {
-      case MessageTypes.GetLongestChainRequest: return this.handleGetLongestChainRequest(message);
-      case MessageTypes.NewBlockRequest       : return this.handleNewBlockRequest(message);
-      case MessageTypes.NewBlockAnnouncement  : return this.handleNewBlockAnnouncement(message);
+      case MessageTypes.GetLongestChainRequest:
+        return this.handleGetLongestChainRequest(message);
+      case MessageTypes.NewBlockRequest:
+        return this.handleNewBlockRequest(message);
+      case MessageTypes.NewBlockAnnouncement:
+        return this.handleNewBlockAnnouncement(message);
       default: {
         console.log(`Received message of unknown type: "${message.type}"`);
       }
     }
-  }
+  };
 
   private handleGetLongestChainRequest(message: Message): void {
     this.server.send({
