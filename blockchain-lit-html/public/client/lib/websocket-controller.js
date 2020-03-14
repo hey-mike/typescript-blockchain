@@ -32,6 +32,7 @@ export class WebsocketController {
     async send(message, awaitForReply = false) {
         return new Promise(async (resolve, reject) => {
             if (awaitForReply) {
+                // stores a reference to the client’s messages using the correlation ID and an object of type PromiseExecutor:
                 this.messagesAwaitingReply.set(message.correlationId, { resolve, reject });
             }
             this.websocket.then(ws => ws.send(JSON.stringify(message)), () => this.messagesAwaitingReply.delete(message.correlationId));

@@ -76,9 +76,9 @@ export class BlockchainNode {
         // Verify the hash of the new block against the hash of the previous block.
         const newBlockHash = await this.calculateHash(newBlock);
         const prevBlockHash = this._chain[previousBlockIndex].hash;
-        const newBlockValid = (newBlockHash.startsWith(HASH_REQUIREMENT) &&
+        const newBlockValid = newBlockHash.startsWith(HASH_REQUIREMENT) &&
             newBlock.previousHash === prevBlockHash &&
-            newBlock.hash === newBlockHash);
+            newBlock.hash === newBlockHash;
         if (!newBlockValid) {
             throw new Error(`${errorMessagePrefix} - hash verification has failed.`);
         }

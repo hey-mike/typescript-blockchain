@@ -24,10 +24,7 @@ export class TransactionForm {
     `;
     }
     get formValid() {
-        return !!(this.transaction &&
-            this.transaction.sender &&
-            this.transaction.amount &&
-            this.transaction.recipient);
+        return !!(this.transaction && this.transaction.sender && this.transaction.amount && this.transaction.recipient);
     }
     enqueueTransaction(event, node) {
         event.preventDefault();
