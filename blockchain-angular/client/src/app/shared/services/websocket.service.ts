@@ -1,23 +1,36 @@
-import { Message, MessageTypes, UUID } from '../../shared/messages.js';
-import { Block, Transaction } from './blockchain-node.js';
-import { uuid } from './cryptography.js';
+import { Injectable } from '@angular/core';
+import { Observable, Subject } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { Message, MessageTypes, UUID } from '../messages';
+import { Block, Transaction } from './blockchain-node.service';
+import { CryptoService } from './crypto.service';
 
 interface PromiseExecutor<T> {
   resolve: (value?: T | PromiseLike<T>) => void;
   reject: (reason?: any) => void;
 }
 
-export class WebsocketController {
+@Injectable({
+  providedIn: 'root'
+})
+export class WebsocketService {
   private websocket: Promise<WebSocket>;
   private readonly messagesAwaitingReply = new Map<UUID, PromiseExecutor<Message>>();
+  private readonly _messageReceived = new Subject<Message>();
 
-  constructor(private readonly messagesCallback: (messages: Message) => void) {
+  get messageReceived(): Observable<Message> {
+    return this._messageReceived.asObservable();
+  }
+
+  // In Chapter 10 WebsocketController was instantiated with `new` keyword manually.
+  // In Angular all services instantiated for us by Injector automatically.
+  constructor(private readonly crypto: CryptoService) {
     this.websocket = this.connect();
   }
 
   private get url(): string {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const hostname = window.location.host;
+    const hostname = environment.wsHostname;
     return `${protocol}://${hostname}`;
   }
 
@@ -37,14 +50,17 @@ export class WebsocketController {
       this.messagesAwaitingReply.get(message.correlationId).resolve(message);
       this.messagesAwaitingReply.delete(message.correlationId);
     } else {
-      this.messagesCallback(message); // an unexpected message from the server
+      // Unlike the chapter 10 version of the WebSocket communications,
+      // here the services are created for us by Angular DI,
+      // so we cannot pass a messagesCallback as an argument. The conventional way
+      // to notify about events in Angular is using Observables.
+      this._messageReceived.next(message);
     }
-  };
+  }
 
   async send(message: Partial<Message>, awaitForReply: boolean = false): Promise<Message> {
     return new Promise<Message>(async (resolve, reject) => {
       if (awaitForReply) {
-        // stores a reference to the client’s messages using the correlation ID and an object of type PromiseExecutor:
         this.messagesAwaitingReply.set(message.correlationId, { resolve, reject });
       }
       this.websocket.then(
@@ -55,20 +71,17 @@ export class WebsocketController {
   }
 
   async requestLongestChain(): Promise<Block[]> {
-    const reply = await this.send(
-      {
-        type: MessageTypes.GetLongestChainRequest,
-        correlationId: uuid()
-      },
-      true
-    );
+    const reply = await this.send({
+      type: MessageTypes.GetLongestChainRequest,
+      correlationId: this.crypto.uuid()
+    }, true);
     return reply.payload;
   }
 
   requestNewBlock(transactions: Transaction[]): void {
     this.send({
       type: MessageTypes.NewBlockRequest,
-      correlationId: uuid(),
+      correlationId: this.crypto.uuid(),
       payload: transactions
     });
   }
@@ -76,7 +89,7 @@ export class WebsocketController {
   announceNewBlock(block: Block): void {
     this.send({
       type: MessageTypes.NewBlockAnnouncement,
-      correlationId: uuid(),
+      correlationId: this.crypto.uuid(),
       payload: block
     });
   }
